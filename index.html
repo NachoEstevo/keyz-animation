@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KeyZ — logo</title>
+<style>
+  :root{
+    --ink:#ffffff;
+    --bg:#000000;
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --ease: cubic-bezier(.16,1,.3,1);
+    --sep-dur: 1.15s;      /* separación K/Z + apertura de máscaras */
+    --sep-delay: .80s;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    cursor:pointer;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* vignette + grain */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:radial-gradient(120% 90% at 50% 48%, rgba(255,255,255,.05), rgba(0,0,0,0) 62%);
+    pointer-events:none;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:-50%;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+    opacity:.04;
+    pointer-events:none;
+    animation:grain 6s steps(6) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}   20%{transform:translate(-3%,2%)}
+    40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-2%)}
+    80%{transform:translate(3%,1%)}  100%{transform:translate(0,0)}
+  }
+
+  .stage{ position:relative; z-index:2; }
+
+  /* capa 1: entrada + escala final */
+  .scaler{
+    transform:scale(.9);
+    filter:blur(16px);
+    opacity:0;
+    will-change:transform,filter,opacity;
+  }
+
+  /* capa 2: recentrado (el par "KZ" arranca corrido si E e Y no miden igual) */
+  .wordmark{
+    display:flex;
+    align-items:baseline;
+    font-weight:700;
+    font-size:clamp(64px, 21vw, 320px);
+    line-height:1;
+    letter-spacing:-0.03em;
+    transform:translateX(var(--x0,0px));
+    will-change:transform;
+  }
+  .wordmark .l{
+    display:inline-block;
+    white-space:pre;
+  }
+
+  /* K y Z arrancan juntas, encimadas sobre la e y la y */
+  .pillar{ will-change:transform; }
+  .pillar.k{ transform:translateX(var(--tk,0px)); }
+  .pillar.z{ transform:translateX(calc(-1 * var(--tz,0px))); }
+
+  /* La e y la y NO se mueven ni aparecen: están siempre en su sitio, tapadas.
+     El inset vertical es negativo -> nunca se recorta arriba ni abajo (cola de la "y").
+     Los valores del lado que barre los calcula el JS en px. */
+  .fill{ will-change:clip-path; }
+  .fill.e{ clip-path:inset(-60% -30% -80% var(--e0,100%)); }  /* tapada desde la izq. (por la K) */
+  .fill.y{ clip-path:inset(-60% var(--y0,100%) -80% -30%); }  /* tapada desde la der. (por la Z) */
+  .fill.done{ clip-path:none; }
+
+  /* ── PLAY ─────────────────────────────────────── */
+  .go .scaler{
+    animation:mark-in .9s var(--ease) forwards,
+              mark-grow 1.2s var(--ease) 1.9s forwards;
+  }
+  @keyframes mark-in{
+    from{ opacity:0; transform:scale(.9); filter:blur(16px); }
+    to  { opacity:1; transform:scale(1);  filter:blur(0);    }
+  }
+  @keyframes mark-grow{
+    from{ transform:scale(1);    }
+    to  { transform:scale(1.14); }
+  }
+
+  /* Todo lo de abajo comparte duración, delay y easing:
+     por eso el borde de cada máscara viaja pegado al canto de la K / la Z. */
+  .go .wordmark,
+  .go .pillar,
+  .go .fill{
+    animation-duration:var(--sep-dur);
+    animation-delay:var(--sep-delay);
+    animation-timing-function:var(--ease);
+    animation-fill-mode:forwards;
+  }
+  .go .wordmark{ animation-name:recenter; }
+  .go .pillar.k{ animation-name:slide-k;  }
+  .go .pillar.z{ animation-name:slide-z;  }
+  .go .fill.e  { animation-name:unmask-e; }
+  .go .fill.y  { animation-name:unmask-y; }
+
+  @keyframes recenter{ to{ transform:translateX(0); } }
+  @keyframes slide-k { to{ transform:translateX(0); } }
+  @keyframes slide-z { to{ transform:translateX(0); } }
+  /* CLAVE: el borde que barre recorre EXACTAMENTE lo mismo que la K (o la Z).
+     Por eso los extremos salen del JS en px: si la máscara viaja de más,
+     destapa la letra antes de que pase la letra que la tapa. */
+  @keyframes unmask-e{ to{ clip-path:inset(-60% -30% -80% var(--e1,0px)); } }
+  @keyframes unmask-y{ to{ clip-path:inset(-60% var(--y1,0px) -80% -30%); } }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001s !important; animation-delay:0s !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="stage" id="stage">
+    <div class="scaler">
+      <div class="wordmark" id="wordmark">
+        <span class="l pillar k">K</span>
+        <span class="l fill e" data-fill>e</span>
+        <span class="l fill y" data-fill>y</span>
+        <span class="l pillar z">Z</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+const stage = document.getElementById('stage');
+const mark  = document.getElementById('wordmark');
+const E = document.querySelector('.fill.e');
+const Y = document.querySelector('.fill.y');
+
+const ctx = document.createElement('canvas').getContext('2d');
+// Colchón para el antialias: actualBoundingBox devuelve el contorno del glifo,
+// pero el pintado lo desborda ~1px y se filtraba un hilo blanco.
+const safePad = fs => Math.max(2, fs * 0.01);
+
+/* Con letter-spacing negativo la caja de la letra queda más angosta que el glifo,
+   así que la tinta se le escapa. Devuelve cuánto se pasa de cada lado. */
+function inkOverflow(ch, font, track){
+  ctx.font = font;
+  const m = ctx.measureText(ch);
+  return {
+    left:  Math.max(0, m.actualBoundingBoxLeft),                    // tinta a la izq. del origen
+    right: Math.max(0, m.actualBoundingBoxRight - (m.width + track)) // tinta pasada la caja
+  };
+}
+
+function measure(){
+  const cs    = getComputedStyle(mark);
+  const fs    = parseFloat(cs.fontSize);
+  const font  = `${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+  const track = parseFloat(cs.letterSpacing) || 0;
+  const SAFE  = safePad(fs);
+
+  // offsetWidth = ancho de layout: inmune al scale() del .scaler.
+  // getBoundingClientRect() devolvería el ancho ya transformado y el calce se rompe.
+  const we = E.offsetWidth;
+  const wy = Y.offsetWidth;
+
+  // La tinta se sale de la caja por los dos lados, y distinto en cada glifo.
+  // La máscara tiene que arrancar más allá de la tinta (tapar de verdad) y
+  // terminar más allá de la tinta del otro lado (no recortar nada).
+  // Ese sobrante va SOLO a la máscara: si se le suma al recorrido de la letra,
+  // la "KZ" inicial se pisa. Son ~2-10px sobre ~170, imperceptible.
+  const ie = inkOverflow(E.textContent, font, track);   // barrida desde la izquierda (K)
+  const iy = inkOverflow(Y.textContent, font, track);   // barrida desde la derecha  (Z)
+
+  mark.style.setProperty('--tk', we + 'px');   // la K recorre exacto la caja de la "e"
+  mark.style.setProperty('--tz', wy + 'px');   // la Z recorre exacto la caja de la "y"
+  mark.style.setProperty('--e0',  (we + ie.right + SAFE) + 'px');  // tapada: pasa la tinta derecha
+  mark.style.setProperty('--e1', -(ie.left  + SAFE) + 'px');       // libre:  pasa la tinta izquierda
+  mark.style.setProperty('--y0',  (wy + iy.left  + SAFE) + 'px');
+  mark.style.setProperty('--y1', -(iy.right + SAFE) + 'px');
+  // la K se corre +we y la Z -wy; si no son iguales, el par "KZ" arranca descentrado.
+  mark.style.setProperty('--x0', ((wy - we) / 2) + 'px');
+}
+
+function play(){
+  stage.classList.remove('go');
+  [E, Y].forEach(el => el.classList.remove('done'));
+  void mark.offsetWidth;           // reflow -> reinicia las animaciones
+  measure();
+  void mark.offsetWidth;
+  stage.classList.add('go');
+}
+
+[E, Y].forEach(el => el.addEventListener('animationend', ev => {
+  if (ev.animationName.startsWith('unmask')) el.classList.add('done');
+}));
+
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+  measure();
+  requestAnimationFrame(play);
+});
+
+addEventListener('resize', measure);
+addEventListener('click', play);
+addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter'){ e.preventDefault(); play(); }
+});
+</script>
+</body>
+</html>
